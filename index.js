@@ -22,3 +22,5 @@ function onMessage(msg, reply) {
 }
 
 bot.text(onMessage);
+
+console.log('telegram bot started');
