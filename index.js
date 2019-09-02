@@ -24,3 +24,6 @@ function onMessage(msg, reply) {
 bot.text(onMessage);
 
 console.log('telegram bot started');
+
+// for heroku, otherwise script would be unloaded
+require('http').createServer().listen(process.env.PORT || 5000).on('request', function(req, res){res.end('')})
