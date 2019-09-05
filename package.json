@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
-    "botgram": "^2.2.0",
-    "figlet": "^1.2.3"
+    "node-telegram-bot-api": "^0.30.0"
+    "googleapis": "^39.2.0",
   },
   "devDependencies": {},
   "scripts": {
