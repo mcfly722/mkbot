@@ -1,5 +1,7 @@
 const TelegramGroupId = -382659045;
 const GoogleSpreadSheetId = '1bhqEnq00K6udjVmAb1iDRWSg2iyaN3idfeOXAXaxwnE';
+const ReloadDataCacheSec = 5;
+
 
 const TelegramBot = require('node-telegram-bot-api');
 const GoogleSpreadSheet = require('google-spreadsheet');
@@ -9,10 +11,6 @@ const { TELEGRAM_BOT_TOKEN, GOOGLE_API_PRIVATE_KEY } = process.env;
 
 var creds = require('./googleCredentials.json');
 creds.private_key = GOOGLE_API_PRIVATE_KEY;
-
-
-//const { google } = require('googleapis');
-
 
 if (!TELEGRAM_BOT_TOKEN) {
   console.error('Seems like you forgot to pass Telegram Bot Token. I can not proceed...');
@@ -24,32 +22,51 @@ if (!GOOGLE_API_PRIVATE_KEY) {
   process.exit(1);
 }
 
+var availableTours = null;
+var googleSheetsInfo = null;
 
 async function accessSpreadSheet(){
   const doc = new GoogleSpreadSheet(GoogleSpreadSheetId);
   await promisify(doc.useServiceAccountAuth)(creds);
-  const info = await promisify(doc.getInfo)();
+  googleSheetsInfo = await promisify(doc.getInfo)();
 
-  var toursSheet = info.worksheets.filter(sheet => {return sheet.title === 'Tours'})[0];
-  var bookingSheet = info.worksheets.filter(sheet => {return sheet.title === 'Bookings'})[0];
+  availableTours = await getAvailableTours();
 
-  startTelegramBot(toursSheet, bookingSheet);
+  startTelegramBot(TELEGRAM_BOT_TOKEN, TelegramGroupId);
+}
+
+async function getAvailableTours(){
+  const toursSheet = googleSheetsInfo.worksheets.filter(sheet => {return sheet.title === 'Tours'})[0];
+  const bookingsSheet = googleSheetsInfo.worksheets.filter(sheet => {return sheet.title === 'Bookings'})[0];
+
+  const tours = await promisify(toursSheet.getRows)({offset:1, query : 'disabled != 1'});
+  const bookings = await promisify(bookingsSheet.getRows)({offset:1});
+
+  lastCacheTime = Date.now();
+
+  return tours.map(
+    function(tour)
+    {
+      tour['bookings'] = bookings.filter(booking=>booking.tourid==tour.id);
+      return tour;
+    }
+  );
 }
 
 accessSpreadSheet();
 
+var lastCacheTime = Date.now();
 
+function startTelegramBot(token, groupId) {
 
-
-function startTelegramBot(toursSheet, bookingSheet) {
-
-  const bot = new TelegramBot(TELEGRAM_BOT_TOKEN, {
+  const bot = new TelegramBot(token, {
     polling: true
   });
 
-  bot.on('message', (msg) => {
+  bot.on('message', async (msg) => {
 
-    if(msg.chat.id == TelegramGroupId) {
+
+    if(msg.chat.id == groupId) {
       // chat message
       if(msg.text.charAt(0) == '/') {
         bot.sendMessage(msg.chat.id, 'Unknown command: '+msg.text);
@@ -58,14 +75,23 @@ function startTelegramBot(toursSheet, bookingSheet) {
     } else {
       // personal message
 
+      if((Date.now()-lastCacheTime)/1000 > ReloadDataCacheSec){
+        console.log('updating data cache ('+(Date.now()-lastCacheTime)/1000+'sec)');
+        availableTours = await getAvailableTours();
+        lastCacheTime = Date.now();
+      }
+
       switch (true){
         case /^\x2ftours/.test(msg.text):
-          showAvailableTours(bot, msg.chat.id, toursSheet);
+          showAvailableTours(bot, msg.chat.id);
           break;
         case /^\x2finvite/.test(msg.text):
           console.log(JSON.stringify(msg,null,4));
           break;
-        case /^\x2f[0-9]+\x3f/.test(msg.text):
+        case /^\x2f[0-9]+book/.test(msg.text):
+            bookTour(bot, msg.chat.id, msg.text.match(/\d+/g)[0]);
+            break;
+        case /^\x2f[0-9]+/.test(msg.text):
           showTour(bot, msg.chat.id, msg.text.match(/\d+/g)[0]);
           break;
         default:
@@ -83,22 +109,46 @@ function startTelegramBot(toursSheet, bookingSheet) {
 
 }
 
-async function showTour(bot, chatId, tourId){
+function bookTour(bot, chatId,  tourId){
+  var tour = availableTours.filter(tour=>tour.id==tourId)[0];
+
+  var msg= "Вы успешно присоединились к туру '"+tour.displayname+"'";
+
   bot.sendMessage(
     chatId,
-    'info about tour#'+tourId, {
+    msg, {
       reply_markup: {
-        keyboard: []
+        hide_keyboard: true
+      }
+    }
+  );
+
+}
+
+function showTour(bot, chatId,  tourId){
+  var tour = availableTours.filter(tour=>tour.id==tourId)[0];
+
+  var msg = 'тур с номером '+tourId+' не найден';
+  if (tour != undefined) {
+    msg = JSON.stringify(tour,null,4);
+  }
+
+  bot.sendMessage(
+    chatId,
+    msg, {
+      reply_markup: {
+        keyboard: [
+          ['/'+tourId+'book - указать что забронировал отпуск на даты тура и готов присоединиться'],
+          ['/tours - к списку туров']
+        ]
       }
     }
   );
 }
 
-async function showAvailableTours(bot, chatId, toursSheet){
-  const tours = await promisify(toursSheet.getRows)({offset:1});
-
-  const buttons = tours.map(tour => {
-      return ['/'+tour.id + '? - ' + tour.displayname + ' [' + shortFormatDateRange(tour.from, tour.to) + ']']
+async function showAvailableTours(bot, chatId){
+  const buttons = availableTours.map(tour => {
+      return ['/'+tour.id + ' - ' + tour.displayname + ' [' + shortFormatDateRange(tour.from, tour.to) + ']  ' + tour.bookings.length+'/'+tour.peoplerequired+' чел.']
   });
 
   bot.sendMessage(
