@@ -93,6 +93,8 @@ function startTelegramBot(token, groupId) {
     polling: true
   });
 
+  bot.sendMessage(TelegramGroupId, 'я снова online', {reply_markup: {hide_keyboard: true}});
+
   bot.on('message', async (msg) => {
 
 
