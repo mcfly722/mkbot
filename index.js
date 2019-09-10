@@ -69,7 +69,7 @@ async function bookTour(bot, chatId,  tourId ,userId, firstName, lastName){
   console.log(JSON.stringify(tour, null, 4));
 
   bot.sendMessage(chatId,"Вы успешно присоединились к туру '"+tour.displayname+"'", {reply_markup: {hide_keyboard: true}});
-  bot.sendMessage(TelegramGroupId, booking.firstName + ' ' + booking.lastName + " присоединился к туру '"+tour.displayname+"'", {reply_markup: {hide_keyboard: true}});
+  bot.sendMessage(TelegramGroupId, booking.firstName + ' ' + booking.lastName + " присоединился к туру '"+tour.displayname+"'");
 
 }
 
@@ -79,7 +79,7 @@ async function unbookTour(bot, chatId, tourId, userId){
   booking.del();
 
   bot.sendMessage(chatId, "Ваша бронь тура '"+tour.displayname+"' успешно отменена", {reply_markup: {hide_keyboard: true}});
-  bot.sendMessage(TelegramGroupId, booking.firstname + ' ' + booking.lastname + " отменил свое участие в туре '"+tour.displayname+"'", {reply_markup: {hide_keyboard: true}});
+  bot.sendMessage(TelegramGroupId, booking.firstname + ' ' + booking.lastname + " отменил свое участие в туре '"+tour.displayname+"'");
 }
 
 
@@ -93,7 +93,7 @@ function startTelegramBot(token, groupId) {
     polling: true
   });
 
-  bot.sendMessage(TelegramGroupId, 'я снова online', {reply_markup: {hide_keyboard: true}});
+  bot.sendMessage(TelegramGroupId, 'я снова online');
 
   bot.on('message', async (msg) => {
 
@@ -118,7 +118,8 @@ function startTelegramBot(token, groupId) {
           showAvailableTours(bot, msg.chat.id);
           break;
         case /^\x2finvite/.test(msg.text):
-          console.log(JSON.stringify(msg,null,4));
+          const inviteLink = await bot.exportChatInviteLink(TelegramGroupId);
+          bot.sendMessage(msg.chat.id, '<a href="'+inviteLink+'">@KLTravel</a>', {parse_mode: 'HTML', reply_markup: {hide_keyboard: true}});
           break;
         case /^\x2f[0-9]+book/.test(msg.text):
             await bookTour(bot, msg.chat.id, msg.text.match(/\d+/g)[0], msg.from.id, msg.from.first_name, msg.from.last_name);
