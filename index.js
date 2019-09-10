@@ -53,6 +53,36 @@ async function getAvailableTours(){
   );
 }
 
+async function bookTour(bot, chatId,  tourId ,userId, firstName, lastName){
+  const bookingsSheet = googleSheetsInfo.worksheets.filter(sheet => {return sheet.title === 'Bookings'})[0];
+
+  const booking = {
+    tourId : tourId,
+    userId : userId,
+    firstName : firstName,
+    lastName : lastName
+  }
+
+  await promisify(bookingsSheet.addRow)(booking);
+
+  var tour = availableTours.filter(tour=>tour.id==tourId)[0];
+  console.log(JSON.stringify(tour, null, 4));
+
+  bot.sendMessage(chatId,"Вы успешно присоединились к туру '"+tour.displayname+"'", {reply_markup: {hide_keyboard: true}});
+  bot.sendMessage(TelegramGroupId, booking.firstName + ' ' + booking.lastName + " присоединился к туру '"+tour.displayname+"'", {reply_markup: {hide_keyboard: true}});
+
+}
+
+async function unbookTour(bot, chatId, tourId, userId){
+  var tour = availableTours.filter(tour=>tour.id==tourId)[0];
+  var booking = tour.bookings.filter(booking=>booking.userid==userId)[0];
+  booking.del();
+
+  bot.sendMessage(chatId, "Ваша бронь тура '"+tour.displayname+"' успешно отменена", {reply_markup: {hide_keyboard: true}});
+  bot.sendMessage(TelegramGroupId, booking.firstname + ' ' + booking.lastname + " отменил свое участие в туре '"+tour.displayname+"'", {reply_markup: {hide_keyboard: true}});
+}
+
+
 accessSpreadSheet();
 
 var lastCacheTime = Date.now();
@@ -89,7 +119,12 @@ function startTelegramBot(token, groupId) {
           console.log(JSON.stringify(msg,null,4));
           break;
         case /^\x2f[0-9]+book/.test(msg.text):
-            bookTour(bot, msg.chat.id, msg.text.match(/\d+/g)[0]);
+            await bookTour(bot, msg.chat.id, msg.text.match(/\d+/g)[0], msg.from.id, msg.from.first_name, msg.from.last_name);
+            availableTours = await getAvailableTours();
+            break;
+        case /^\x2f[0-9]+unbook/.test(msg.text):
+            await unbookTour(bot, msg.chat.id, msg.text.match(/\d+/g)[0], msg.from.id);
+            availableTours = await getAvailableTours();
             break;
         case /^\x2f[0-9]+/.test(msg.text):
           showTour(bot, msg.chat.id, msg.text.match(/\d+/g)[0]);
@@ -109,21 +144,6 @@ function startTelegramBot(token, groupId) {
 
 }
 
-function bookTour(bot, chatId,  tourId){
-  var tour = availableTours.filter(tour=>tour.id==tourId)[0];
-
-  var msg= "Вы успешно присоединились к туру '"+tour.displayname+"'";
-
-  bot.sendMessage(
-    chatId,
-    msg, {
-      reply_markup: {
-        hide_keyboard: true
-      }
-    }
-  );
-
-}
 
 function showTour(bot, chatId,  tourId){
   var tour = availableTours.filter(tour=>tour.id==tourId)[0];
@@ -138,7 +158,8 @@ function showTour(bot, chatId,  tourId){
     msg, {
       reply_markup: {
         keyboard: [
-          ['/'+tourId+'book - указать что забронировал отпуск на даты тура и готов присоединиться'],
+          ['/'+tourId+'book - для данного тура я уже забранировал отпуск'],
+          ['/'+tourId+'unbook - отменить свое участие в туре'],
           ['/tours - к списку туров']
         ]
       }
