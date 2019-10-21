@@ -71,7 +71,8 @@ async function bookTour(bot, chatId,  tourId ,userId, firstName, lastName){
 		await promisify(bookingsSheet.addRow)(booking);
 		
 		bot.sendMessage(chatId,"Вы успешно присоединились к туру '"+tour.displayname+"'", {reply_markup: {hide_keyboard: true}});
-		bot.sendMessage(TelegramGroupId, booking.firstName + ' ' + booking.lastName + " присоединился к туру '"+tour.displayname+"'");
+
+		bot.sendMessage(TelegramGroupId, '['+firstName + ' ' + lastName+'](tg://user?id='+userId+')' + " присоединился к туру '"+tour.displayname+"'",{parse_mode: 'Markdown'});
 	} else {
 		bot.sendMessage(chatId, 'Тур #'+tourId+" - "+tour.displayname+" вами уже был ранее забронирован", {reply_markup: {hide_keyboard: true}});
 	}
@@ -90,7 +91,7 @@ async function unbookTour(bot, chatId, tourId, userId){
 	} else {
 		booking.del();
 		bot.sendMessage(chatId, "Ваша бронь тура '"+tour.displayname+"' успешно отменена", {reply_markup: {hide_keyboard: true}});
-		bot.sendMessage(TelegramGroupId, booking.firstname + ' ' + booking.lastname + " отменил свое участие в туре '"+tour.displayname+"'");
+		bot.sendMessage(TelegramGroupId, '['+booking.firstname + ' ' + booking.lastname+'](tg://user?id='+userId+')' + " отменил свое участие в туре '"+tour.displayname+"'",{parse_mode: 'Markdown'});
 	}
   }
 }
@@ -174,12 +175,20 @@ function showTour(bot, chatId,  tourId, userId){
 		'организатор: ' + tour.organizer + "\n"+
 		'свободно мест: '+(tour.peoplelimit-tour.bookings.length)+" из "+tour.peoplelimit+"\n" +
 		'подробнее: '+tour.url+"\n";
-	//JSON.stringify(tour,null,4);
+	if(tour.bookings != undefined) {
+		msg+="участники:\n";
+		tour.bookings.forEach(function(booking, index){
+			//msg+=(index+1)+') <a href="tg://user?id='+booking.userid+'">'+booking.firstname+' '+booking.lastname+'</a>';
+			msg+=(index+1)+') ['+booking.firstname+' '+booking.lastname+'](tg://user?id='+booking.userid+')';
+		});
+	}
+		
+	console.log(JSON.stringify(tour,null,4));
   
 	var booking = tour.bookings.filter(booking=>booking.userid==userId)[0];
 
 	if(booking == undefined) {
-		buttons.push(['/'+tourId+'book - для данного тура я уже забранировал отпуск']);
+		buttons.push(['/'+tourId+'book - для данного тура я уже забранировал отпуск и планирую его посетить']);
 	} else {
 		buttons.push(['/'+tourId+'unbook - отменить свое участие в туре']);
 	}
@@ -191,6 +200,7 @@ function showTour(bot, chatId,  tourId, userId){
   bot.sendMessage(
     chatId,
     msg, {
+	  parse_mode: 'Markdown',
       reply_markup: {
         keyboard: buttons
       }
