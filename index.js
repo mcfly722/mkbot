@@ -54,32 +54,45 @@ async function getAvailableTours(){
 }
 
 async function bookTour(bot, chatId,  tourId ,userId, firstName, lastName){
-  const bookingsSheet = googleSheetsInfo.worksheets.filter(sheet => {return sheet.title === 'Bookings'})[0];
-
-  const booking = {
-    tourId : tourId,
-    userId : userId,
-    firstName : firstName,
-    lastName : lastName
-  }
-
-  await promisify(bookingsSheet.addRow)(booking);
+	const bookingsSheet = googleSheetsInfo.worksheets.filter(sheet => {return sheet.title === 'Bookings'})[0];
+	const booking = {
+		tourId : tourId,
+		userId : userId,
+		firstName : firstName,
+		lastName : lastName
+	}
 
   var tour = availableTours.filter(tour=>tour.id==tourId)[0];
-  console.log(JSON.stringify(tour, null, 4));
-
-  bot.sendMessage(chatId,"Вы успешно присоединились к туру '"+tour.displayname+"'", {reply_markup: {hide_keyboard: true}});
-  bot.sendMessage(TelegramGroupId, booking.firstName + ' ' + booking.lastName + " присоединился к туру '"+tour.displayname+"'");
-
+  if(tour == undefined) {
+	bot.sendMessage(chatId, 'Тур #'+tourId+' не найден', {reply_markup: {hide_keyboard: true}});
+  } else {
+	var existingBooking = tour.bookings.filter(booking=>booking.userid==userId)[0];
+	if(existingBooking == undefined) {
+		await promisify(bookingsSheet.addRow)(booking);
+		
+		bot.sendMessage(chatId,"Вы успешно присоединились к туру '"+tour.displayname+"'", {reply_markup: {hide_keyboard: true}});
+		bot.sendMessage(TelegramGroupId, booking.firstName + ' ' + booking.lastName + " присоединился к туру '"+tour.displayname+"'");
+	} else {
+		bot.sendMessage(chatId, 'Тур #'+tourId+" - "+tour.displayname+" вами уже был ранее забронирован", {reply_markup: {hide_keyboard: true}});
+	}
+  }  
+//  console.log(JSON.stringify(tour, null, 4));
 }
 
 async function unbookTour(bot, chatId, tourId, userId){
   var tour = availableTours.filter(tour=>tour.id==tourId)[0];
-  var booking = tour.bookings.filter(booking=>booking.userid==userId)[0];
-  booking.del();
-
-  bot.sendMessage(chatId, "Ваша бронь тура '"+tour.displayname+"' успешно отменена", {reply_markup: {hide_keyboard: true}});
-  bot.sendMessage(TelegramGroupId, booking.firstname + ' ' + booking.lastname + " отменил свое участие в туре '"+tour.displayname+"'");
+  if(tour == undefined) {
+	bot.sendMessage(chatId, 'Тур #'+tourId+' не найден', {reply_markup: {hide_keyboard: true}});
+  } else {
+	var booking = tour.bookings.filter(booking=>booking.userid==userId)[0];
+	if(booking == undefined) {
+		bot.sendMessage(chatId, 'Тур #'+tourId+' вами не был ранее забронирован', {reply_markup: {hide_keyboard: true}});
+	} else {
+		booking.del();
+		bot.sendMessage(chatId, "Ваша бронь тура '"+tour.displayname+"' успешно отменена", {reply_markup: {hide_keyboard: true}});
+		bot.sendMessage(TelegramGroupId, booking.firstname + ' ' + booking.lastname + " отменил свое участие в туре '"+tour.displayname+"'");
+	}
+  }
 }
 
 
@@ -93,7 +106,7 @@ function startTelegramBot(token, groupId) {
     polling: true
   });
 
-  bot.sendMessage(TelegramGroupId, 'я снова online');
+  //bot.sendMessage(TelegramGroupId, 'я снова online');
 
   bot.on('message', async (msg) => {
 
@@ -130,7 +143,7 @@ function startTelegramBot(token, groupId) {
             availableTours = await getAvailableTours();
             break;
         case /^\x2f[0-9]+/.test(msg.text):
-          showTour(bot, msg.chat.id, msg.text.match(/\d+/g)[0]);
+          showTour(bot, msg.chat.id, msg.text.match(/\d+/g)[0],msg.from.id);
           break;
         default:
           bot.sendMessage(msg.chat.id,'список доступных команд можно посмотреть набрав /',{reply_markup: {hide_keyboard: true}});
@@ -148,23 +161,38 @@ function startTelegramBot(token, groupId) {
 }
 
 
-function showTour(bot, chatId,  tourId){
+function showTour(bot, chatId,  tourId, userId){
+  var buttons = [];
+
   var tour = availableTours.filter(tour=>tour.id==tourId)[0];
 
   var msg = 'тур с номером '+tourId+' не найден';
+  
   if (tour != undefined) {
-    msg = JSON.stringify(tour,null,4);
+	msg = 'Тур #'+tourId+' - '+tour.displayname+"\n"+
+		'даты проведения: с '+tour.from+' по '+tour.to+"\n"+
+		'организатор: ' + tour.organizer + "\n"+
+		'свободно мест: '+(tour.peoplelimit-tour.bookings.length)+" из "+tour.peoplelimit+"\n" +
+		'подробнее: '+tour.url+"\n";
+	//JSON.stringify(tour,null,4);
+  
+	var booking = tour.bookings.filter(booking=>booking.userid==userId)[0];
+
+	if(booking == undefined) {
+		buttons.push(['/'+tourId+'book - для данного тура я уже забранировал отпуск']);
+	} else {
+		buttons.push(['/'+tourId+'unbook - отменить свое участие в туре']);
+	}
+
   }
+
+  buttons.push(['/tours - список туров']);
 
   bot.sendMessage(
     chatId,
     msg, {
       reply_markup: {
-        keyboard: [
-          ['/'+tourId+'book - для данного тура я уже забранировал отпуск'],
-          ['/'+tourId+'unbook - отменить свое участие в туре'],
-          ['/tours - к списку туров']
-        ]
+        keyboard: buttons
       }
     }
   );
