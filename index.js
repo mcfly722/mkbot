@@ -1,3 +1,5 @@
+process.env.NTBA_FIX_319 = 1;
+
 const ReloadDataCacheSec = 5;
 const GoogleSpreadSheetId = '1bhqEnq00K6udjVmAb1iDRWSg2iyaN3idfeOXAXaxwnE';
 
