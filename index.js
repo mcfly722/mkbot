@@ -8,7 +8,7 @@ const {promisify} = require('util');
 
 const { TELEGRAM_BOT_TOKEN, GOOGLE_API_TOKEN, GOOGLE_SPREADSHEET_ID} = process.env;
 
-if (!GOOGLE_API_PRIVATE_KEY) {
+if (!GOOGLE_API_TOKEN) {
   console.error('Seems like you forgot to pass Google SpreadSheet Token. I can not proceed...');
   process.exit(1);
 }
