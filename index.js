@@ -128,6 +128,15 @@ function startTelegramBot(token) {
 
           console.log("current groups:" + JSON.stringify(Object.keys(availableGroups)));
         }
+	      
+        if(msg.text == '+' || msg.text == '+1') {
+          bookUser(bot,msg.chat.id.toString(),msg.message_id, msg.from);
+        }
+
+        if(msg.text == '-' || msg.text == '-1') {
+          unbookUser(bot,msg.chat.id.toString(),msg.message_id, msg.from);
+        }
+        console.log(msg);
       }
 
       if(msg.chat.type == 'bot_command' || msg.chat.type == 'private') {
@@ -150,19 +159,6 @@ function startTelegramBot(token) {
           });
         }
       }
-
-      if(msg.chat.type == 'group' || msg.chat.type == 'supergroup') {
-        if(msg.text == '+' || msg.text == '+1') {
-          bookUser(bot,msg.chat.id.toString(),msg.message_id, msg.from);
-        }
-
-        if(msg.text == '-' || msg.text == '-1') {
-          unbookUser(bot,msg.chat.id.toString(),msg.message_id, msg.from);
-        }
-        console.log(msg);
-      }
-
-
     }
   });
 
