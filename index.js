@@ -150,13 +150,15 @@ function startTelegramBot(token) {
 		  
 		  var groupDescription = 'Группа: <a href="'+inviteLink+'">' + availableGroups[current].title + '</a>\n';
 		  
-		  if(availableGroups[current].description){
-		    groupDescription += availableGroups[current].description+'\n';
+		  if(availableGroups[current].Description){
+		    groupDescription += availableGroups[current].Description+'\n';
 		  }
 		      
 		  if(participants){
 		    groupDescription += 'Участники:\n' + participants;
 		  }
+		  
+		  console.log(JSON.stringify(availableGroups[current]));
 		      
                   bot.sendMessage(msg.chat.id, groupDescription, {parse_mode: 'HTML', reply_markup: {hide_keyboard: true}});
               }
