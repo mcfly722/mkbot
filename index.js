@@ -137,16 +137,16 @@ function startTelegramBot(token) {
           const bookings = await promisify(bookingsSheet.getRows)({offset:1});
 
           Object.keys(availableGroups).forEach(async function (current){
-            const inviteLink = await bot.exportChatInviteLink(current);
-            if (inviteLink != '') {
-                var participants = "";
-                bookings.filter(booking=> booking.groupid == current).forEach(function(booking, index){
-
-                  participants += (index+1).toString()+') <a href="tg://user?id='+booking.userid+'">'+booking.firstname+' '+booking.lastname+'</a>\n';
-                });
-
-                bot.sendMessage(msg.chat.id, 'Группа: <a href="'+inviteLink+'">'+availableGroups[current].title+'</a>\nУчастники:\n'+participants, {parse_mode: 'HTML', reply_markup: {hide_keyboard: true}});
-            }
+            try {
+              const inviteLink = await bot.exportChatInviteLink(current);
+              if (inviteLink != '') {
+                  var participants = "";
+                  bookings.filter(booking=> booking.groupid == current).forEach(function(booking, index){
+                    participants += (index+1).toString()+') <a href="tg://user?id='+booking.userid+'">'+booking.firstname+' '+booking.lastname+'</a>\n';
+                  });
+                  bot.sendMessage(msg.chat.id, 'Группа: <a href="'+inviteLink+'">'+availableGroups[current].title+'</a>\nУчастники:\n'+participants, {parse_mode: 'HTML', reply_markup: {hide_keyboard: true}});
+              }
+            } catch (e){console.log(current+':'+e);};
           });
         }
       }
