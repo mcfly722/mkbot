@@ -1,28 +1,22 @@
 process.env.NTBA_FIX_319 = 1;
 
 const ReloadDataCacheSec = 5;
-const GoogleSpreadSheetId = '1bhqEnq00K6udjVmAb1iDRWSg2iyaN3idfeOXAXaxwnE';
 
 const TelegramBot = require('node-telegram-bot-api');
 const GoogleSpreadSheet = require('google-spreadsheet');
 const {promisify} = require('util');
 
-const { TELEGRAM_BOT_TOKEN, GOOGLE_API_PRIVATE_KEY} = process.env;
+const { TELEGRAM_BOT_TOKEN, GOOGLE_API_TOKEN, GOOGLE_SPREADSHEET_ID} = process.env;
 
 if (!GOOGLE_API_PRIVATE_KEY) {
   console.error('Seems like you forgot to pass Google SpreadSheet Token. I can not proceed...');
   process.exit(1);
 }
 
-var creds = require('./googleCredentials.json');
-creds.private_key = GOOGLE_API_PRIVATE_KEY;
-
 if (!TELEGRAM_BOT_TOKEN) {
   console.error('Seems like you forgot to pass Telegram Bot Token. I can not proceed...');
   process.exit(1);
 }
-
-
 
 async function getAvailableGroups(){
   const groupsSheet = googleSheetsInfo.worksheets.filter(sheet => {return sheet.title === 'Groups'})[0];
@@ -46,8 +40,8 @@ var availableGroups = null;
 var googleSheetsInfo = null;
 
 async function accessSpreadSheet(){
-  const doc = new GoogleSpreadSheet(GoogleSpreadSheetId);
-  await promisify(doc.useServiceAccountAuth)(creds);
+  const doc = new GoogleSpreadSheet(GOOGLE_SPREADSHEET_ID);
+  await promisify(doc.useServiceAccountAuth)(JSON.parse(GOOGLE_API_TOKEN));
   googleSheetsInfo = await promisify(doc.getInfo)();
 
   availableGroups = await getAvailableGroups();
