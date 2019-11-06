@@ -134,7 +134,12 @@ function startTelegramBot(token) {
       }
 
       if(msg.chat.type == 'bot_command' || msg.chat.type == 'private') {
-        if(msg.text == '/groups') {
+		
+		if(msg.text == '/start') {
+			bot.sendMessage(msg.chat.id, 'Привет!\nЯ бот, который поможет тебе спланировать свой отпуск и поездки на 2020.\nНиже, по каждой из планируемых поездок, представлены Telegram группы обсуждения.\nЕсли ты уже забронировал на SuccessFactors свой отпуск под одну из этих поездок, подтверди, пожалуйста, свое участие сообщением "+" в соответствующую группу поездки.\nЧтобы отменить свое участие в эту же группу можно прислать "-".\nАктуральный список групп и участников можно узнать командой /groups\n', {parse_mode: 'HTML', reply_markup: {hide_keyboard: true}});
+		}
+		
+        if(msg.text == '/groups' || msg.text == '/start') {
 
           const bookingsSheet = googleSheetsInfo.worksheets.filter(sheet => {return sheet.title === 'Bookings'})[0];
           const bookings = await promisify(bookingsSheet.getRows)({offset:1});
