@@ -156,6 +156,8 @@ function startTelegramBot(token) {
 		      
 		  if(participants){
 		    groupDescription += 'Участники:\n' + participants;
+		  } else {
+		    groupDescription += '(Пока нет участников)';
 		  }
 		  
 		  console.log(JSON.stringify(availableGroups[current]));
