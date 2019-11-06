@@ -103,8 +103,8 @@ function startTelegramBot(token) {
 
     if (msg.chat != undefined && msg.chat.type != undefined) {
 
-      if(msg.chat.type == 'group' || msg.chat.type == 'supergroup') {
-        // group or supergroup
+      if(msg.chat.type == 'supergroup') {
+        // supergroup
 
         if(!Object.keys(availableGroups).includes(msg.chat.id.toString())){
 
