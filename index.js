@@ -170,4 +170,4 @@ function startTelegramBot(token) {
   });
 }
 
-accessSpreadSheet();
+//accessSpreadSheet();
