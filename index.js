@@ -23,7 +23,7 @@ async function getAvailableGroups(){
   const groups = await promisify(groupsSheet.getRows)({offset:1, query : 'disabled != 1'});
 
   return groups.reduce(function(map,obj){
-    map[obj.id] = {'title': obj.title};
+    map[obj.id] = {'title': obj.title, 'description': obj.description};
     return map;
   },{});
 }
@@ -150,8 +150,8 @@ function startTelegramBot(token) {
 		  
 		  var groupDescription = 'Группа: <a href="'+inviteLink+'">' + availableGroups[current].title + '</a>\n';
 		  
-		  if(availableGroups[current].Description){
-		    groupDescription += availableGroups[current].Description+'\n';
+		  if(availableGroups[current].description){
+		    groupDescription += availableGroups[current].description+'\n';
 		  }
 		      
 		  if(participants){
