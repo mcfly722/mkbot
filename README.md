@@ -1,3 +1,5 @@
+Telegram bot to view available tours
+
 ```
 Before starting you should configure tokens for Telegram and Google sheet:
 
